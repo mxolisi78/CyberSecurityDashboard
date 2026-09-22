@@ -1,0 +1,50 @@
+{
+  "n_samples": 300,
+  "n_features": 28,
+  "feature_names": [
+    "hour",
+    "day_of_week",
+    "bytes",
+    "log_bytes",
+    "port",
+    "is_privileged_port",
+    "is_high_port",
+    "event_type_login_failed",
+    "event_type_login_success",
+    "event_type_port_scan",
+    "event_type_malware_detected",
+    "event_type_firewall_block",
+    "event_type_dns_query",
+    "event_type_file_access",
+    "event_type_privilege_escalation",
+    "event_type_data_transfer",
+    "source_FIREWALL",
+    "source_IDS",
+    "source_ENDPOINT",
+    "source_SERVER",
+    "source_AUTH",
+    "source_APPLICATION",
+    "source_NETWORK",
+    "source_OTHER",
+    "proto_TCP",
+    "proto_UDP",
+    "proto_ICMP",
+    "proto_HTTPS"
+  ],
+  "anomaly_rate": 0.1,
+  "classifier": {
+    "accuracy": 0.96,
+    "f1": 0.9662921348314607,
+    "confusion_matrix": [
+      [
+        29,
+        0
+      ],
+      [
+        3,
+        43
+      ]
+    ],
+    "positive_rate": 0.61
+  }
+}
