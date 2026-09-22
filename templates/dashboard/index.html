@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Overview · CyberSecurity Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Security Overview</h2>
+        <div class="text-muted small">Real-time posture across your assets</div>
+    </div>
+    <button class="btn btn-outline-info btn-sm"
+            onclick="runBatchPredict(this)">
+        <i class="bi bi-cpu"></i> Run batch prediction (50)
+    </button>
+</div>
+
+<!-- KPI tiles -->
+<div class="row g-3 mb-4" id="kpi-row">
+    <div class="col-6 col-md-3">
+        <div class="kpi kpi-info">
+            <div>
+                <div class="kpi-value" id="kpi-assets">—</div>
+                <div class="kpi-label">Assets</div>
+            </div>
+            <i class="bi bi-hdd-network kpi-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi kpi-warn">
+            <div>
+                <div class="kpi-value" id="kpi-vulns">—</div>
+                <div class="kpi-label">Unpatched Vulns</div>
+            </div>
+            <i class="bi bi-bug kpi-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi kpi-danger">
+            <div>
+                <div class="kpi-value" id="kpi-incidents">—</div>
+                <div class="kpi-label">Open Incidents</div>
+            </div>
+            <i class="bi bi-exclamation-triangle kpi-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi kpi-ok">
+            <div>
+                <div class="kpi-value" id="kpi-anomalies">—</div>
+                <div class="kpi-label">ML Anomalies</div>
+            </div>
+            <i class="bi bi-activity kpi-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> Incidents by Severity
+            </div>
+            <div class="card-body">
+                <canvas id="chart-incident-severity" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-pie-chart"></i> Assets by Criticality
+            </div>
+            <div class="card-body">
+                <canvas id="chart-asset-criticality" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-diagram-3"></i> Logs by Source
+            </div>
+            <div class="card-body">
+                <canvas id="chart-log-source" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-shield-check"></i> ML Predictions Breakdown
+            </div>
+            <div class="card-body">
+                <canvas id="chart-pred-labels" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CHART_DEFAULTS = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { labels: { color: '#e5e7eb' } },
+    },
+    scales: {
+        x: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
+        y: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
+    },
+};
+
+const COLORS = {
+    LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#fb923c',
+    CRITICAL: '#ef4444',
+    MISSION_CRITICAL: '#ef4444',
+    benign: '#10b981', suspicious: '#f59e0b', malicious: '#ef4444',
+};
+
+async function loadOverview() {
+    // KPI counts from dashboard summary
+    const summary = await apiFetch('/api/dashboard/summary/');
+    document.getElementById('kpi-assets').textContent = summary.assets.total;
+    document.getElementById('kpi-vulns').textContent = summary.vulnerabilities.unpatched;
+    document.getElementById('kpi-incidents').textContent = summary.incidents.open;
+    document.getElementById('kpi-anomalies').textContent = summary.predictions.anomalies;
+
+    // --- Incidents by severity ---
+    const incidents = await apiFetch('/api/incidents/?page_size=200');
+    const sevCounts = {};
+    incidents.results.forEach(i => {
+        sevCounts[i.severity] = (sevCounts[i.severity] || 0) + 1;
+    });
+    new Chart(document.getElementById('chart-incident-severity'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(sevCounts),
+           datasets: [{
+    label: '',
+    data: Object.values(sevCounts),
+    backgroundColor: Object.keys(sevCounts).map(k => COLORS[k] || '#06b6d4'),
+}],
+        },
+        options: CHART_DEFAULTS,
+    });
+
+    // --- Assets by criticality ---
+    const assets = await apiFetch('/api/assets/?page_size=200');
+    const critCounts = {};
+    assets.results.forEach(a => {
+        critCounts[a.criticality] = (critCounts[a.criticality] || 0) + 1;
+    });
+    new Chart(document.getElementById('chart-asset-criticality'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(critCounts),
+            datasets: [{
+                data: Object.values(critCounts),
+                backgroundColor: Object.keys(critCounts).map(k => COLORS[k] || '#06b6d4'),
+            }],
+        },
+        options: Object.assign({}, CHART_DEFAULTS, { scales: {} }),
+    });
+
+    // --- Logs by source ---
+    const logs = await apiFetch('/api/logs/?page_size=500');
+    const srcCounts = {};
+    logs.results.forEach(l => {
+        srcCounts[l.source] = (srcCounts[l.source] || 0) + 1;
+    });
+    new Chart(document.getElementById('chart-log-source'), {
+        type: 'bar',
+        data: {
+            datasets: [{
+    label: '',
+    data: Object.values(srcCounts),
+    backgroundColor: '#06b6d4',
+}],
+        },
+        options: CHART_DEFAULTS,
+    });
+
+    // --- Predictions by label ---
+    const preds = await apiFetch('/api/predictions/?page_size=500');
+    const labelCounts = {};
+    preds.results.forEach(p => {
+        labelCounts[p.label] = (labelCounts[p.label] || 0) + 1;
+    });
+    new Chart(document.getElementById('chart-pred-labels'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(labelCounts),
+            datasets: [{
+                data: Object.values(labelCounts),
+                backgroundColor: Object.keys(labelCounts).map(k => COLORS[k] || '#06b6d4'),
+            }],
+        },
+        options: Object.assign({}, CHART_DEFAULTS, { scales: {} }),
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadOverview);
+</script>
+{% endblock %}

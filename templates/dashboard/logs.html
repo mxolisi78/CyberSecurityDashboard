@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Log Explorer · CyberSecurity Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Log Explorer</h2>
+        <div class="text-muted small">Browse and ML-score security log entries</div>
+    </div>
+    <div class="d-flex gap-2">
+        <select id="filter-source" class="form-select form-select-sm"
+                style="width:auto;">
+            <option value="">All sources</option>
+            <option>FIREWALL</option><option>IDS</option><option>ENDPOINT</option>
+            <option>SERVER</option><option>AUTH</option><option>APPLICATION</option>
+            <option>NETWORK</option><option>OTHER</option>
+        </select>
+        <select id="filter-processed" class="form-select form-select-sm"
+                style="width:auto;">
+            <option value="">Any status</option>
+            <option value="false">Unprocessed</option>
+            <option value="true">Processed</option>
+        </select>
+        <button class="btn btn-sm btn-outline-info"
+                onclick="runBatchPredict(this)">
+            <i class="bi bi-cpu"></i> Batch predict (50)
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-scroll">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="sticky-top">
+                <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Source</th>
+                    <th>Event</th>
+                    <th>Asset</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Prediction</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="log-rows">
+                    <tr><td colspan="9" class="text-center py-4 text-muted">
+                        Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadLogs() {
+    const src = document.getElementById('filter-source').value;
+    const proc = document.getElementById('filter-processed').value;
+    const params = new URLSearchParams({ page_size: 50 });
+    if (src) params.set('source', src);
+    if (proc) params.set('is_processed', proc);
+
+    const data = await apiFetch('/api/logs/?' + params.toString());
+    const tbody = document.getElementById('log-rows');
+
+    if (!data.results.length) {
+        tbody.innerHTML = `<tr><td colspan="9"
+            class="text-center py-4 text-muted">No logs match.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.results.map(l => `
+        <tr>
+            <td class="mono">${l.id}</td>
+            <td class="mono small">${new Date(l.timestamp).toLocaleString()}</td>
+            <td><span class="badge bg-secondary">${l.source}</span></td>
+            <td class="mono small">${l.event_type || '—'}</td>
+            <td class="small">${l.asset_name || '—'}</td>
+            <td class="small text-truncate" style="max-width:280px;"
+                title="${(l.message || '').replace(/"/g, '&quot;')}">
+                ${l.message || '—'}
+            </td>
+            <td>
+                ${l.is_processed
+                    ? '<span class="pill pill-RESOLVED">processed</span>'
+                    : '<span class="pill pill-OPEN">unprocessed</span>'}
+            </td>
+            <td id="pred-${l.id}" class="small text-muted">—</td>
+            <td>
+                <button class="btn btn-sm btn-outline-info btn-predict"
+                        onclick="predictLog(${l.id}, this)">
+                    <i class="bi bi-cpu"></i> Predict
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+document.getElementById('filter-source').addEventListener('change', loadLogs);
+document.getElementById('filter-processed').addEventListener('change', loadLogs);
+document.addEventListener('DOMContentLoaded', loadLogs);
+</script>
+{% endblock %}

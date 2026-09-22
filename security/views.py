@@ -12,9 +12,11 @@ We use DRF ModelViewSets so each resource gets:
 Filtering is enabled via django-filter.
 """
 
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.shortcuts import render
 
 from .models import (
     Asset,
@@ -78,6 +80,169 @@ class LogEntryViewSet(viewsets.ModelViewSet):
     search_fields = ["event_type", "message", "source_ip", "destination_ip"]
     ordering_fields = ["timestamp"]
 
+    # ------------------------------------------------------------------
+    # POST /api/logs/{id}/predict/
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["post"])
+    def predict(self, request, pk=None):
+        """
+        Score a single log entry with the ML pipeline and persist results
+        as Prediction rows.
+        """
+        from ml.predict import score_logs
+        from .models import MLModel, Prediction
+
+        log = self.get_object()
+
+        try:
+            results = score_logs([log])
+        except FileNotFoundError as exc:
+            return Response(
+                {"error": str(exc)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if not results:
+            return Response(
+                {"error": "No features could be extracted from this log."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        r = results[0]
+
+        anomaly_model = MLModel.objects.filter(
+            name="anomaly_detector", is_active=True
+        ).first()
+        classifier_model = MLModel.objects.filter(
+            name="intrusion_classifier", is_active=True
+        ).first()
+
+        created = []
+
+        if anomaly_model:
+            pred = Prediction.objects.create(
+                model=anomaly_model,
+                log_entry=log,
+                label="anomaly" if r["is_anomaly"] else "normal",
+                score=r["anomaly_score"],
+                is_anomaly=r["is_anomaly"],
+                explanation=f"Anomaly score: {r['anomaly_score']:.4f}",
+            )
+            created.append(PredictionSerializer(pred).data)
+
+        if classifier_model:
+            pred = Prediction.objects.create(
+                model=classifier_model,
+                log_entry=log,
+                label="suspicious" if r["is_suspicious"] else "benign",
+                score=r["suspicion_probability"],
+                is_anomaly=r["is_suspicious"],
+                explanation=(
+                    f"Suspicion probability: {r['suspicion_probability']:.4f}"
+                ),
+            )
+            created.append(PredictionSerializer(pred).data)
+
+        # Mark the log as processed
+        if not log.is_processed:
+            log.is_processed = True
+            log.save(update_fields=["is_processed"])
+
+        return Response(
+            {
+                "log_id": log.id,
+                "is_anomaly": r["is_anomaly"],
+                "is_suspicious": r["is_suspicious"],
+                "anomaly_score": r["anomaly_score"],
+                "suspicion_probability": r["suspicion_probability"],
+                "predictions": created,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    # ------------------------------------------------------------------
+    # POST /api/logs/predict-batch/?limit=50
+    # ------------------------------------------------------------------
+    @action(detail=False, methods=["post"], url_path="predict-batch")
+    def predict_batch(self, request):
+        """
+        Score up to `limit` unprocessed logs (default 50).
+        """
+        from ml.predict import score_logs
+        from .models import MLModel, Prediction
+
+        try:
+            limit = int(request.query_params.get("limit", 50))
+        except (TypeError, ValueError):
+            limit = 50
+        limit = max(1, min(limit, 500))
+
+        logs = list(
+            LogEntry.objects.filter(is_processed=False)
+            .order_by("-timestamp")[:limit]
+        )
+
+        if not logs:
+            return Response(
+                {"message": "No unprocessed logs found.", "count": 0},
+                status=status.HTTP_200_OK,
+            )
+
+        try:
+            results = score_logs(logs)
+        except FileNotFoundError as exc:
+            return Response(
+                {"error": str(exc)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        anomaly_model = MLModel.objects.filter(
+            name="anomaly_detector", is_active=True
+        ).first()
+        classifier_model = MLModel.objects.filter(
+            name="intrusion_classifier", is_active=True
+        ).first()
+
+        predictions_to_create = []
+        processed_ids = []
+
+        for log, r in zip(logs, results):
+            if anomaly_model:
+                predictions_to_create.append(Prediction(
+                    model=anomaly_model,
+                    log_entry=log,
+                    label="anomaly" if r["is_anomaly"] else "normal",
+                    score=r["anomaly_score"],
+                    is_anomaly=r["is_anomaly"],
+                    explanation=f"Anomaly score: {r['anomaly_score']:.4f}",
+                ))
+            if classifier_model:
+                predictions_to_create.append(Prediction(
+                    model=classifier_model,
+                    log_entry=log,
+                    label="suspicious" if r["is_suspicious"] else "benign",
+                    score=r["suspicion_probability"],
+                    is_anomaly=r["is_suspicious"],
+                    explanation=(
+                        f"Suspicion probability: "
+                        f"{r['suspicion_probability']:.4f}"
+                    ),
+                ))
+            processed_ids.append(log.id)
+
+        Prediction.objects.bulk_create(predictions_to_create)
+        LogEntry.objects.filter(id__in=processed_ids).update(is_processed=True)
+
+        anomalies = sum(1 for r in results if r["is_anomaly"])
+        suspicious = sum(1 for r in results if r["is_suspicious"])
+
+        return Response({
+            "processed": len(logs),
+            "predictions_created": len(predictions_to_create),
+            "anomalies_detected": anomalies,
+            "suspicious_flagged": suspicious,
+        }, status=status.HTTP_201_CREATED)
+
 
 class MLModelViewSet(viewsets.ModelViewSet):
     queryset = MLModel.objects.all()
@@ -135,3 +300,17 @@ def dashboard_summary(request):
             "anomalies": Prediction.objects.filter(is_anomaly=True).count(),
         },
     })
+
+# ---------------------------------------------------------------------------
+# Dashboard page views (server-rendered shells; data loaded via JS/API)
+# ---------------------------------------------------------------------------
+def dashboard_index(request):
+    return render(request, "dashboard/index.html", {"active": "overview"})
+
+
+def dashboard_logs(request):
+    return render(request, "dashboard/logs.html", {"active": "logs"})
+
+
+def dashboard_incidents(request):
+    return render(request, "dashboard/incidents.html", {"active": "incidents"})

@@ -9,6 +9,7 @@ def api_root(request):
         "service": "CyberSecurityDashboard API",
         "version": "0.1.0",
         "endpoints": {
+            "dashboard_ui": "/dashboard/",
             "api": "/api/",
             "dashboard_summary": "/api/dashboard/summary/",
             "assets": "/api/assets/",
@@ -28,4 +29,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("security.urls")),
     path("api-auth/", include("rest_framework.urls")),
+    path("dashboard/", include("security.dashboard_urls")),
 ]

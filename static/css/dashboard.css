@@ -1,0 +1,153 @@
+/* CyberSecurity Dashboard — dark theme overrides */
+
+:root {
+    --bg-base:    #0a0e1a;
+    --bg-card:    #111827;
+    --bg-elev:    #1a2332;
+    --border:     #1f2937;
+    --text:       #e5e7eb;
+    --text-muted: #9ca3af;
+    --accent:     #06b6d4;
+    --danger:     #ef4444;
+    --warn:       #f59e0b;
+    --ok:         #10b981;
+}
+
+html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+}
+
+.navbar {
+    background: var(--bg-card) !important;
+}
+
+.navbar-brand {
+    letter-spacing: 0.02em;
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.card-header {
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* KPI tiles */
+.kpi {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    height: 100%;
+}
+.kpi:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+.kpi .kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.kpi .kpi-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.kpi .kpi-icon {
+    font-size: 2.2rem;
+    opacity: 0.7;
+}
+.kpi.kpi-danger  .kpi-icon { color: var(--danger); }
+.kpi.kpi-warn    .kpi-icon { color: var(--warn); }
+.kpi.kpi-ok      .kpi-icon { color: var(--ok); }
+.kpi.kpi-info    .kpi-icon { color: var(--accent); }
+
+/* Table tweaks */
+.table {
+    color: var(--text);
+}
+.table > :not(caption) > * > * {
+    background: transparent;
+    border-color: var(--border);
+}
+.table thead th {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+}
+
+/* Severity pills */
+.pill {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.pill-LOW      { background: rgba(16,185,129,0.15); color: #34d399; }
+.pill-MEDIUM   { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.pill-HIGH     { background: rgba(249,115,22,0.18); color: #fb923c; }
+.pill-CRITICAL { background: rgba(239,68,68,0.18);  color: #f87171; }
+.pill-OPEN         { background: rgba(239,68,68,0.15);  color: #f87171; }
+.pill-INVESTIGATING{ background: rgba(245,158,11,0.15); color: #fbbf24; }
+.pill-CONTAINED    { background: rgba(6,182,212,0.15);  color: #22d3ee; }
+.pill-RESOLVED     { background: rgba(16,185,129,0.15); color: #34d399; }
+.pill-CLOSED       { background: rgba(107,114,128,0.15);color: #9ca3af; }
+.pill-FALSE_POSITIVE{ background: rgba(107,114,128,0.15);color: #9ca3af; }
+.pill-benign     { background: rgba(16,185,129,0.15); color: #34d399; }
+.pill-normal     { background: rgba(16,185,129,0.15); color: #34d399; }
+.pill-suspicious { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.pill-anomaly    { background: rgba(239,68,68,0.15);  color: #f87171; }
+.pill-malicious  { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+/* Buttons */
+.btn-outline-info, .btn-info {
+    --bs-btn-color: var(--accent);
+}
+
+/* Loading spinner overlay for predict actions */
+.btn-predict.loading::after {
+    content: "";
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-left: 0.5rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scrollable tables */
+.table-scroll {
+    max-height: 560px;
+    overflow-y: auto;
+}
+
+/* Monospace for logs */
+.mono {
+    font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.82rem;
+}
+</style>
