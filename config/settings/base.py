@@ -1,59 +1,45 @@
 """
-Django settings for CyberSecurityDashboard.
+Base Django settings shared across all environments.
 
-Environment-driven configuration using python-decouple.
+Do not import this directly. Use config.settings.dev or config.settings.prod.
 """
 
 from pathlib import Path
 from decouple import config, Csv
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 
 # ---------------------------------------------------------------------------
 # Security
 # ---------------------------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me")
-
-DEBUG = config("DEBUG", default=True, cast=bool)
-
+DEBUG = False  # overridden in dev/prod
 ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS",
-    default="127.0.0.1,localhost",
-    cast=Csv(),
+    "ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv()
 )
-
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
     default="http://127.0.0.1,http://localhost",
     cast=Csv(),
 )
 
+
 # ---------------------------------------------------------------------------
 # Applications
 # ---------------------------------------------------------------------------
 INSTALLED_APPS = [
-    # Django default
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
-    # Third-party
     "rest_framework",
     "django_filters",
-
-    # Local
     "security",
 ]
 
-# ---------------------------------------------------------------------------
-# Middleware
-# ---------------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -66,9 +52,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
-# ---------------------------------------------------------------------------
-# Templates
-# ---------------------------------------------------------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -88,10 +71,10 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+
 # ---------------------------------------------------------------------------
-# Database
+# Database — overridden per env; default SQLite for quickstart
 # ---------------------------------------------------------------------------
-# For now we use SQLite. Later we'll switch to PostgreSQL via DATABASE_URL.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -99,8 +82,9 @@ DATABASES = {
     }
 }
 
+
 # ---------------------------------------------------------------------------
-# Password validation
+# Password validators
 # ---------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -109,16 +93,18 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+
 # ---------------------------------------------------------------------------
-# Internationalization
+# i18n
 # ---------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+
 # ---------------------------------------------------------------------------
-# Static & media files
+# Static / media
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
@@ -127,13 +113,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ---------------------------------------------------------------------------
-# Default primary key
-# ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
 # ---------------------------------------------------------------------------
-# Django REST Framework
+# DRF
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
@@ -146,6 +130,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
 }
+
 
 # ---------------------------------------------------------------------------
 # Logging
