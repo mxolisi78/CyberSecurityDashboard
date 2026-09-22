@@ -1,4 +1,9 @@
 # CyberSecurityDashboard
+![CI](https://github.com/mxolisi78/CyberSecurityDashboard/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.13-blue)
+![Django](https://img.shields.io/badge/django-6.1-green)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
