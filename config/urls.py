@@ -1,22 +1,31 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.http import JsonResponse
+from django.urls import include, path
+
+
+def api_root(request):
+    """Simple JSON root so / does not 404 during development."""
+    return JsonResponse({
+        "service": "CyberSecurityDashboard API",
+        "version": "0.1.0",
+        "endpoints": {
+            "api": "/api/",
+            "dashboard_summary": "/api/dashboard/summary/",
+            "assets": "/api/assets/",
+            "threats": "/api/threats/",
+            "vulnerabilities": "/api/vulnerabilities/",
+            "incidents": "/api/incidents/",
+            "logs": "/api/logs/",
+            "ml_models": "/api/ml-models/",
+            "predictions": "/api/predictions/",
+            "admin": "/admin/",
+        },
+    })
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("", api_root, name="api-root"),
+    path("admin/", admin.site.urls),
+    path("api/", include("security.urls")),
+    path("api-auth/", include("rest_framework.urls")),
 ]
