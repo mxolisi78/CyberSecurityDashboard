@@ -1,0 +1,37 @@
+# Version control
+.git/
+.gitignore
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+*.log
+
+# Env
+.env
+
+# ML artifacts (regenerated)
+ml/artifacts/*.joblib
+ml/artifacts/*.pkl
+
+# Notebooks / data
+notebooks/
+data/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
