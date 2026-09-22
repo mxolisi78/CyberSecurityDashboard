@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 
 def api_root(request):
@@ -30,4 +31,12 @@ urlpatterns = [
     path("api/", include("security.urls")),
     path("api-auth/", include("rest_framework.urls")),
     path("dashboard/", include("security.dashboard_urls")),
+        path("robots.txt",
+         TemplateView.as_view(template_name="robots.txt",
+                              content_type="text/plain"),
+         name="robots-txt"),
+    path(".well-known/security.txt",
+         TemplateView.as_view(template_name=".well-known/security.txt",
+                              content_type="text/plain"),
+         name="security-txt"),
 ]

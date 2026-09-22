@@ -150,4 +150,34 @@ html, body {
     font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
     font-size: 0.82rem;
 }
+
+/* ---------------------------------------------------------------------------
+   Responsive tweaks
+   --------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .kpi {
+        padding: 1rem 1.1rem;
+    }
+    .kpi .kpi-value {
+        font-size: 1.6rem;
+    }
+    .kpi .kpi-icon {
+        font-size: 1.7rem;
+    }
+    .table-scroll {
+        max-height: 420px;
+    }
+    h2 {
+        font-size: 1.35rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi .kpi-icon {
+        display: none;
+    }
+    .table {
+        font-size: 0.82rem;
+    }
+}
 </style>
