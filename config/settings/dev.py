@@ -5,7 +5,7 @@ Development settings: verbose errors, SQLite, permissive hosts.
 from .base import *  # noqa: F401,F403
 from decouple import config, Csv
 
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
